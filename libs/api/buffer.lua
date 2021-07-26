@@ -33,14 +33,15 @@ local function po2(n)
 end
 
 function Buffer:realloc(size)
-	self.ctype = ffi.cast("unsigned char*", C.realloc(self.ctype, size))
+	ffi.gc(self.ctype, nil) -- remove the finalizer from the old data, then realloc
+	self.ctype = ffi.gc(ffi.cast("unsigned char*", C.realloc(self.ctype, size)), C.free)
 	self.alloc = size
 end
 
 function Buffer:fit(amt)
 	local newLen = po2(amt)
 	if self.alloc < newLen then
-		self:realloc(newLen * 2)
+		self:realloc(newLen)
 	end
 end
 
@@ -56,7 +57,6 @@ function Buffer:writeData(off, str)
 	self:fit(off + #str)
 
 	-- writes a string without a null terminator
-
 	ffi.copy(self.ctype + off, str, #str)
 	self.length = math.max(self.length, off + #str)
 end

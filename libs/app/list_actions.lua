@@ -30,7 +30,13 @@ end
 local actions = {}
 
 local function output(...)
-	print(...)
+	local str = ""
+	local n = select("#", ...)
+	for i=1, n do
+		str = str .. tostring(select(i, ...)) .. (i ~= n and "	" or "")
+	end
+
+	io.write(str .. "\n")
 end
 
 
@@ -43,7 +49,7 @@ function LoadActions()
 	local function poll()
 		if processing == 0 then
 			if threwHissyFit then
-				print("")
+				output("")
 			end
 			coroutine.wrap(DisplayActions)()
 		end
@@ -116,6 +122,13 @@ function LoadActions()
 			end
 		end
 	end
+
+	if #actions == 0 then
+		output(cs.FormatColor("failure", "No actions detected. Make sure you have files in: %s", dirpath))
+		return
+	end
+
+	poll()
 end
 
 local function getAction(num)
@@ -161,11 +174,6 @@ function editor:clearScreen()
 end
 
 function DisplayActions()
-	if #actions == 0 then
-		output(cs.FormatColor("failure", "No actions detected. Make sure you have files in: %s", dirpath))
-		return
-	end
-
 	editor:clearScreen()
 
 	table.sort(actions, function(a, b)
@@ -175,7 +183,6 @@ function DisplayActions()
 		local alpha_prio = a.Name < b.Name
 		return alpha_prio
 	end)
-
 
 	output(cs.FormatColor("cdata", " %d actions found:", #actions))
 
@@ -188,7 +195,7 @@ function DisplayActions()
 	local onInput
 
 	-- lulz
-	
+
 	local function thereIsNoSpoon(num)
 		output(cs.FormatColor("failure", "No action with the index `%s`.", num))
 		readLine(nil, onInput)
