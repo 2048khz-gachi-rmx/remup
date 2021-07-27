@@ -14,15 +14,7 @@ _G.RemUp = {}
 RemUp.Flags = {}
 RemUp.ViaRepl = via_luvit
 
-local miniz = require("miniz")
-p(miniz)
-
-
-
 require("api/_init.lua")
-
-RemUp.zip.CompressAsync( ("peepee funnie"):rep(10000) )
-do return end
 
 RemUp.ClearScreen()
 require("app/arg_action.lua")
