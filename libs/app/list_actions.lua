@@ -13,58 +13,37 @@ local ru = RemUp
 local LoadActions
 local DisplayActions
 local DescribeAction
-local ExecuteAction
+local ExecuteAction = ru.ExecuteAction
+
 --[==================================[
 	Loading actions list
 --]==================================]
 
-local dirpath = path.getRoot() .. "RemUp"
 local cs = ru.ConStyle
 
-local list_exists = fs.existsSync(dirpath)
+local actions = ru.Actions
 
-if not list_exists then
-	fs.mkdirSync(dirpath)
-end
+local defaultPrompt = "> "
+local history = readline.History.new()
+local editor = readline.Editor.new({stdin = process.stdin.handle, stdout = process.stdout.handle, history = history})
 
-local actions = {}
-
-local function output(...)
-	local str = ""
-	local n = select("#", ...)
-	for i=1, n do
-		str = str .. tostring(select(i, ...)) .. (i ~= n and "	" or "")
-	end
-
-	io.write(str .. "\n")
-end
+local output = ru.SyncPrint
 
 
 function LoadActions()
-	local threwHissyFit = false
+	local threwHissyFit = false -- add a newline before the list if we threw any warnings
 	local processing = 0
 	-- amt of processing actions; can't display actions until all are processed
 	-- processing currently only includes reading the info.json from action folders
 
 	local function poll()
 		if processing == 0 then
+			-- everything processed; now display
 			if threwHissyFit then
 				output("")
 			end
 			coroutine.wrap(DisplayActions)()
 		end
-	end
-
-	local function makeAction(fn_path, is_folder)
-		local sep = path.getSep()
-		local name = is_folder and fn_path:match("([^" .. sep .. "]+)" .. sep .. "init%.lua$") or fn_path:match("[^" .. sep .. "]+%.lua$")
-
-		return {
-			Path = fn_path,
-			IsFolder = is_folder,
-			Name = name,
-			Description = cs.FormatColor("braces", "[no description provided]")
-		}
 	end
 
 	local function readDesc(act)
@@ -100,32 +79,24 @@ function LoadActions()
 		end
 	end
 
-	for file, typ in fs.scandirSync(dirpath) do
-		if typ == "file" then
-			if file:match("%.lua$") then
-				local action = makeAction(file, false)
-				table.insert(actions, action)
-			end
-		else
-			local initter = path.join(dirpath, file, "init.lua")
-			if not fs.existsSync(initter) then
-				output(cs.FormatColor("braces", "No actions detected in: %s", path.join(dirpath, file)))
-				threwHissyFit = true
-			else
-				local info = path.join(dirpath, file, "info.json")
-				local action = makeAction(initter, true)
-				if fs.existsSync(info) then
-					fs.readFile(info, readDesc(action))
-				end
+	if #actions == 0 then
+		output(cs.FormatColor("failure", "No actions detected. Make sure you have files in: %s", ru.DirPath))
+		return
+	end
 
-				table.insert(actions, action)
-			end
+	for k,v in ipairs(ru.FailedActions) do
+		if v.IsFolder then
+			output(cs.FormatColor("braces", "No actions detected in: %s", v.Path))
+			threwHissyFit = true
 		end
 	end
 
-	if #actions == 0 then
-		output(cs.FormatColor("failure", "No actions detected. Make sure you have files in: %s", dirpath))
-		return
+	for k,v in ipairs(ru.Actions) do
+		local info = path.join(path.dirname(v.Path), "info.json")
+
+		if fs.existsSync(info) then
+			fs.readFile(info, readDesc(v))
+		end
 	end
 
 	poll()
@@ -138,10 +109,6 @@ end
 --[==================================[
 	Displaying actions
 --]==================================]
-
-local defaultPrompt = "> "
-local history = readline.History.new()
-local editor = readline.Editor.new({stdin = process.stdin.handle, stdout = process.stdout.handle, history = history})
 
 local indent = (" "):rep(3)
 
@@ -174,7 +141,6 @@ function editor:clearScreen()
 end
 
 function DisplayActions()
-	editor:clearScreen()
 
 	table.sort(actions, function(a, b)
 		local folder_prio = a.IsFolder and not b.IsFolder
@@ -262,13 +228,4 @@ function DescribeAction(act)
 	end
 
 	readLine(nil, onInput)
-end
-
---[[
-	Executing Action
-]]
-
-function ExecuteAction(act)
-	output(cs.Color("nil", "________________________\n"))
-	local ok, err = coroutine.wrap(require)(act.Path)
 end

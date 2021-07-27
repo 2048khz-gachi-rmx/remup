@@ -1,9 +1,10 @@
 local chttp = require("https")
+local ClientRequest = require("http").ClientRequest
 local buffer = require("./buffer")
 
 local ru = RemUp
-ru.HTTP = {}
-local http = ru.HTTP
+ru.http = {}
+local http = ru.http
 
 function http.Fetch(url, headers, body, options)
 	-- everything past url is optional
@@ -12,7 +13,8 @@ function http.Fetch(url, headers, body, options)
 	obj = chttp.request(url, function(res)
 		local size = 0
 		local chunked = false
-		local cont = ""
+
+		obj.headers = res.headers
 
 		for k,v in ipairs(res.headers) do
 			local key = v[1]:lower()
@@ -29,6 +31,7 @@ function http.Fetch(url, headers, body, options)
 		res:on("data", function(dat)
 			buf:writeData(cursor, dat)
 			cursor = cursor + #dat
+			obj.downloaded = cursor
 
 			obj:emit("Data", dat)
 		end)
@@ -37,7 +40,14 @@ function http.Fetch(url, headers, body, options)
 			buf:writeData(cursor, "\0")
 			obj:emit("Finish", buf)
 		end)
+
+		obj.todownload = size
+		obj.chunked = chunked
 	end)
+
+	obj.downloaded = 0
+	obj.todownload = 0
+	obj.chunked = false
 
 	return obj
 end
@@ -73,3 +83,27 @@ function http.FetchMultiple(urls, simultaneous, headers, body)
 	return ret
 end
 
+function ClientRequest:GetDownloaded()
+	return self.downloaded
+end
+
+function ClientRequest:GetToDownload()
+	return self.todownload
+end
+
+function ClientRequest:GetPercent()
+	if self:IsChunked() then return -1 end
+	return self:GetDownloaded() / self:GetToDownload()
+end
+
+function ClientRequest:IsChunked()
+	return self.chunked
+end
+
+function ClientRequest:IsHeaderReceived()
+	return self.headers ~= nil
+end
+
+function ClientRequest:GetHeaders()
+	return self.headers
+end
