@@ -15,7 +15,6 @@ RemUp.Flags = {}
 RemUp.ViaRepl = via_luvit
 
 require("api/_init.lua")
-
 RemUp.ClearScreen()
 require("app/arg_action.lua")
 
