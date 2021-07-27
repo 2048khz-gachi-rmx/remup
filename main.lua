@@ -20,10 +20,6 @@ p(miniz)
 
 
 require("api/_init.lua")
-
-RemUp.zip.CompressAsync( ("peepee funnie"):rep(10000) )
-do return end
-
 RemUp.ClearScreen()
 require("app/arg_action.lua")
 
