@@ -23,6 +23,11 @@ local function makeAction(fn_path, is_folder)
 end
 
 local dirpath = path.getRoot() .. "RemUp"
+
+if jit.os == "Linux" then
+	dirpath = os.getenv("HOME") .. "/RemUp"
+end
+
 local list_exists = fs.existsSync(dirpath)
 
 ru.DirPath = dirpath
