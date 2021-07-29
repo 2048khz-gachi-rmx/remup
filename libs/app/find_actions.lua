@@ -22,10 +22,20 @@ local function makeAction(fn_path, is_folder)
 	return action
 end
 
-local dirpath = path.getRoot() .. "RemUp"
+local dirpath = os.getenv("REMUP")
 
-if jit.os == "Linux" then
-	dirpath = os.getenv("HOME") .. "/RemUp"
+if not dirpath then
+	if jit.os == "Linux" then
+		dirpath = os.getenv("HOME") .. "/RemUp"
+	elseif jit.os == "Windows" then
+		dirpath = path.getRoot() .. "RemUp"
+	end
+end
+
+if not dirpath then
+	print(cs.Color("red", "Failed to find a proper directory for RemUp.\n" ..
+		"Try setting a REMUP env variable or using a proper OS, lol"))
+	return
 end
 
 local list_exists = fs.existsSync(dirpath)
@@ -68,6 +78,8 @@ function ru.ExecuteAction(act)
 
 	ru.SyncPrint(cs.Color("nil", (" "):rep(slashes) .. ("_"):rep(len)))
 	ru.SyncPrint(cs.Color("nil", tx .. "\n"))
+
+	ru.CurrentAction = act.Path
 
 	local ok, err = coroutine.wrap(require)(act.Path)
 end
