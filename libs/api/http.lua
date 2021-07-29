@@ -46,7 +46,7 @@ function http.Fetch(url, headers, body, options)
 
 		res:on("end", function()
 			buf:writeData(cursor, "\0")
-			obj:emit("Finish", buf)
+			obj:emit("Finish", tostring(buf))
 		end)
 
 		obj.todownload = size
