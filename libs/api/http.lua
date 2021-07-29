@@ -1,4 +1,6 @@
-local chttp = require("https")
+local chttp = require("http")
+local chttps = require("https")
+
 local ClientRequest = require("http").ClientRequest
 local buffer = require("./buffer")
 
@@ -8,9 +10,15 @@ local http = ru.http
 
 function http.Fetch(url, headers, body, options)
 	-- everything past url is optional
+	assert(isstring(url))
 
-	local obj
-	obj = chttp.request(url, function(res)
+	local reqFunc = chttp.request
+	if url:match("^https") then
+		reqFunc = chttps.request
+	end
+
+	local obj, ok
+	obj, ok = reqFunc(url, function(res)
 		local size = 0
 		local chunked = false
 
@@ -48,6 +56,10 @@ function http.Fetch(url, headers, body, options)
 	obj.downloaded = 0
 	obj.todownload = 0
 	obj.chunked = false
+
+	obj:on("error", function(err)
+		obj:emit("Error", err)	-- casing consistency question mark
+	end)
 
 	return obj
 end
