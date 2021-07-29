@@ -33,7 +33,8 @@ function http.Fetch(url, headers, body, options)
 			end
 		end
 
-		local buf = buffer:new((size and size + 1) or 1024)
+		local bufsz = size or 1024
+		local buf = buffer:new(bufsz)
 		local cursor = 0
 
 		res:on("data", function(dat)
@@ -45,7 +46,7 @@ function http.Fetch(url, headers, body, options)
 		end)
 
 		res:on("end", function()
-			buf:writeData(cursor, "\0")
+			--buf:writeData(cursor, "\0")
 			obj:emit("Finish", tostring(buf))
 		end)
 

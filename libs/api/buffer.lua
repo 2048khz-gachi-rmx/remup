@@ -12,7 +12,7 @@ local C = ffi.os == "Windows" and ffi.load("msvcrt") or ffi.C
 
 function Buffer:initialize(length)
 	if type(length) == "number" then
-		self.length = length
+		self.length = 0
 		self.alloc = length
 		self.ctype = ffi.gc(ffi.cast("unsigned char*", C.malloc(length)), C.free)
 	elseif type(length) == "string" then
