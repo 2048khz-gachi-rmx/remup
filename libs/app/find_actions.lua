@@ -81,5 +81,10 @@ function ru.ExecuteAction(act)
 
 	ru.CurrentAction = act.Path
 
-	local ok, err = coroutine.wrap(require)(act.Path)
+	local resumer = coroutine.wrap(require)
+	ru.ResumeAction = function(...)
+		resumer(...)
+	end
+
+	resumer(act.Path)
 end
