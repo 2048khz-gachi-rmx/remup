@@ -80,6 +80,7 @@ function ru.ExecuteAction(act)
 	ru.SyncPrint(cs.Color("nil", tx .. "\n"))
 
 	ru.CurrentAction = act.Path
+	ru.CurrentActionFolder = path.dirname(ru.CurrentAction)
 
 	local resumer = coroutine.wrap(require)
 	ru.ResumeAction = function(...)
