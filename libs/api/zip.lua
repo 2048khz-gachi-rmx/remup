@@ -97,7 +97,7 @@ function zip.CompressFile(file_name, data)
 end
 
 function zip.DecompressFile(file_name)
-	local fd = fs.openSync(file_name .. zip_extension, "r")
+	local fd = fs.openSync(file_name, "r")
 
 	-- gets size
 	local byte = fs.readSync(fd, 16, 0)
