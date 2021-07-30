@@ -17,8 +17,8 @@ function http.Fetch(url, headers, body, options)
 		reqFunc = chttps.request
 	end
 
-	local obj, ok
-	obj, ok = reqFunc(url, function(res)
+	local obj
+	obj = reqFunc(url, function(res)
 		local size = 0
 		local chunked = false
 
