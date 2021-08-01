@@ -8,16 +8,16 @@ ffi.cdef[[
 	typedef void  (*free_func)(void* opaque, void* address);
 
 	// structures
-	typedef struct 
+	typedef struct
 	{
-    	unsigned have;
-    	unsigned char *next;
-    	int pos;
+		unsigned have;
+		unsigned char *next;
+		int pos;
 	} gzFile_s;
 
 	// functions
 	unsigned long compressBound(unsigned long sourceLen);
-	
+
 	int compress2(uint8_t *dest, unsigned long *destLen,
 		  const uint8_t *source, unsigned long sourceLen, int level);
 	int uncompress(uint8_t *dest, unsigned long *destLen,
@@ -42,7 +42,7 @@ zip.Extension = zip_extension
 
 -- yoinked from ffi docs, too lazy
 function zip.Compress(txt)
-	local size = tostring(#txt) .. txt	
+	local size = tostring(#txt) .. txt
 
 	local n = zlib.compressBound(#txt)
 	local buf = ffi.new("uint8_t[?]", n)
@@ -54,10 +54,10 @@ end
 
 function zip.Decompress(txt, len)
 	local buf = ffi.new("uint8_t[?]", len)
-  	local buflen = ffi.new("unsigned long[1]", len)
-  	local res = zlib.uncompress(buf, buflen, txt, #txt)
+	local buflen = ffi.new("unsigned long[1]", len)
+	local res = zlib.uncompress(buf, buflen, txt, #txt)
 
-  	return ffi.string(buf, buflen[0])
+	return ffi.string(buf, buflen[0])
 end
 
 function zip.GzOpen(file_descriptor, mode)
@@ -70,8 +70,8 @@ end
 
 function zip.GzRead(gz_file, len)
 	local buf = ffi.new("uint8_t[?]", len)
-  	local buflen = ffi.new("unsigned long[1]", len)
-  	local res = zlib.gzread(gz_file, buf, len)
+	local buflen = ffi.new("unsigned long[1]", len)
+	local res = zlib.gzread(gz_file, buf, len)
 
 	return ffi.string(buf, buflen[0])
 end
@@ -84,33 +84,51 @@ function zip.CompressionBound(len)
 	return zlib.compressBound(len)
 end
 
-function zip.CompressFile(file_name, data)
-	local file_data = fs.readFileSync(file_name)
+function zip.CompressFile(file_name, new_fn)
+	local file_data, err = fs.readFileSync(file_name)
 
-	local fd = fs.openSync(file_name .. zip_extension, "w")
+	if not file_data then
+		return false, err
+	end
 
-	-- writes size and compressed data
-	fs.writeSync(fd, 0, tostring(#file_data))
-	fs.writeSync(fd, 16, zip.Compress(file_data))
+	if new_fn ~= false then
+		local fd = fs.openSync(file_name .. zip_extension, "w")
 
-	fs.closeSync(fd)
+		-- writes size and compressed data
+		fs.writeSync(fd, 0, ru.Bytes.ToUInt32LE(#file_data))
+		fs.writeSync(fd, 4, zip.Compress(file_data))
+
+		fs.closeSync(fd)
+		return true
+	end
+
+	return true, zip.Compress(file_data), #file_data
 end
 
-function zip.DecompressFile(file_name)
-	local fd = fs.openSync(file_name, "r")
+function zip.DecompressFile(file_name, new_fn)
+	local fd, err = fs.openSync(file_name, "r")
 
-	-- gets size
-	local byte = fs.readSync(fd, 16, 0)
-	local size = tonumber(string.match(byte, "%d+"))
-	local compressed_size = zip.CompressionBound(size) -- calcs the compressed size from original 
+	if not fd then
+		return false, err
+	end
 
-	-- begin decompression
-	local compressed_data = fs.readSync(fd, compressed_size, 16)
-	local decompressed_data = zip.Decompress(compressed_data, size)
-
+	-- get data from file first
+	local byte = fs.readSync(fd, 4, 0)
+	local size = ru.Bytes.FromUInt32LE(byte)
+	local compressed_size = zip.CompressionBound(size) -- calcs the compressed size from original
+	local compressed_data = fs.readSync(fd, compressed_size, 4)
 	fs.closeSync(fd)
 
-	-- writes the file
-	local new_file_path = string.gsub(file_name .. zip_extension, zip_extension, "")
-	fs.writeFileSync(new_file_path, decompressed_data)
+	-- decompress
+	local decompressed_data = zip.Decompress(compressed_data, size)
+
+	-- write to new file or return the decompressed data
+	if new_fn ~= false then
+		-- write the decompressed
+		local new_file_path = file_name:gsub(zip_extension:PatternSafe() .. "$", "")
+		fs.writeFileSync(new_file_path, decompressed_data)
+		return true
+	else
+		return true, decompressed_data
+	end
 end

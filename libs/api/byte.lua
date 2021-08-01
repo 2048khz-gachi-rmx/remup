@@ -4,7 +4,7 @@ ru.Bytes = {}
 local byte = ru.Bytes
 
 
-function byte.ToUInt32LE(str)
+function byte.ToUInt32LE(num)
 	num = tonumber(num)
 
 	return string.char(

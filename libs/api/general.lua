@@ -63,3 +63,10 @@ end
 function ru.ClearScreen()
 	process.stdout:write("\x1b[H\x1b[2J")
 end
+
+local bad = "().%+-*?[]^$"
+bad = "[" .. bad:gsub(".", "%%%1") .. "]"
+
+function string.PatternSafe(str)
+	return str:gsub(bad, "%%%1")
+end
